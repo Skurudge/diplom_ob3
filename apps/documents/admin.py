@@ -3,13 +3,13 @@ from django.contrib import admin
 from django.db.models import QuerySet
 from django.http import HttpRequest
 from apps.documents.models import Document
+from apps.documents.tasks import send_user_status_notification_task
 
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     """Настройка панели администратора для управления документами пользователей."""
 
-    # 1. Какие поля отображать в виде таблицы в списке документов
     list_display = (
         "id",
         "user",
@@ -17,18 +17,11 @@ class DocumentAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-
-    # 2. Поля, на которые можно кликнуть, чтобы перейти внутрь документа
     list_display_links = ("id", "user")
-
-    # 3. Фильтры в правой панели для быстрой сортировки документов администратором
     list_filter = ("status", "created_at")
-
-    # 4. Поля для поиска (по имени пользователя, его email или ID документа)
     search_fields = ("user__username", "user__email", "id")
-
-    # 5. Настройка полей внутри самого документа при детальном просмотре
     readonly_fields = ("created_at", "updated_at")
+
     fieldsets = (
         (
             "Основная информация",
@@ -50,33 +43,34 @@ class DocumentAdmin(admin.ModelAdmin):
         ),
     )
 
-    # 6. БЫСТРЫЕ ДЕЙСТВИЯ (Actions) — требование из ТЗ
     actions = ["approve_documents", "reject_documents"]
 
     @admin.action(description="Одобрить выбранные документы")
     def approve_documents(self, request: HttpRequest, queryset: QuerySet[Document]) -> None:
-        """Быстрое действие: Массовое одобрение документов."""
-        # Обновляем статус в базе данных
+        """Быстрое действие: Массовое одобрение документов с отправкой уведомлений."""
+        # 1. Сначала массово обновляем статус в базе данных
         updated_count = queryset.update(status=Document.Status.APPROVED)
 
-        # Выводим красивое системное уведомление вверху экрана для админа
+        # 2. ИНТЕГРАЦИЯ CELERY: Отправляем каждому пользователю фоновое письмо через очередь
+        for document in queryset:
+            send_user_status_notification_task.delay(document.id)
+
         self.message_user(
             request,
-            f"Успешно одобрено документов: {updated_count}.",
+            f"Успешно одобрено документов: {updated_count}. Письма пользователям отправлены в очередь Celery.",
         )
-
-        # ПРИМЕЧАНИЕ: Сюда мы завтра добавим вызов задачи Celery для отправки писем пользователям!
 
     @admin.action(description="Отклонить выбранные документы")
     def reject_documents(self, request: HttpRequest, queryset: QuerySet[Document]) -> None:
-        """Быстрое действие: Массовое отклонение документов."""
-        # Обновляем статус в базе данных
+        """Быстрое действие: Массовое отклонение документов с отправкой уведомлений."""
+        # 1. Сначала массово обновляем статус в базе данных
         updated_count = queryset.update(status=Document.Status.REJECTED)
 
-        # Выводим уведомление для админа
+        # 2. ИНТЕГРАЦИЯ CELERY: Отправляем каждому пользователю фоновое письмо через очередь
+        for document in queryset:
+            send_user_status_notification_task.delay(document.id)
+
         self.message_user(
             request,
-            f"Выбранные документы ({updated_count} шт.) были отклонены.",
+            f"Выбранные документы ({updated_count} шт.) были отклонены. Письма пользователям отправлены в очередь Celery.",
         )
-
-        # ПРИМЕЧАНИЕ: Сюда мы завтра добавим вызов задачи Celery для отправки писем пользователям!

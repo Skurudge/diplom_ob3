@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from apps.documents.models import Document
 from apps.documents.serializers import DocumentSerializer, DocumentUploadSerializer
+from apps.documents.tasks import send_admin_notification_task
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -34,13 +35,16 @@ class DocumentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer_class()(data=request.data)
 
         if serializer.is_valid():
+            # 1. Сохраняем документ в базу данных PostgreSQL
             document = Document.objects.create(
                 user=request.user,
                 file=serializer.validated_data["file"]
             )
             response_serializer = DocumentSerializer(document)
 
-            # ПРИМЕЧАНИЕ: Сюда мы добавим вызов задачи Celery для уведомления админа!
+            # 2. ИНТЕГРАЦИЯ CELERY: Асинхронно отправляем задачу в очередь на уведомление админа
+            send_admin_notification_task.delay(document.id)
+
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
