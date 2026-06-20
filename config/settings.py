@@ -13,7 +13,7 @@ DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 allowed_hosts_raw = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_raw.split(",")]
 
-# 3. Определение установленных приложений (включая DRF, Celery и Spectacular)
+# 3. Определение установленных приложений
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -43,7 +43,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
-# 5. Шаблоны (нужны для корректной работы Django Admin)
+# 5. Шаблоны
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -88,17 +88,16 @@ TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
-# 9. Статические и Медиа-файлы (для загружаемых документов)
+# 9. Статические и Медиа-файлы
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "static"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ИСПРАВЛЕНИЕ: Полный путь к классу автополей для Django 6.0
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# 10. Настройки Django Rest Framework (DRF) и JWT/Spectacular
+# 10. Настройки Django Rest Framework (DRF)
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -112,7 +111,6 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-# Настройки генератора документации Swagger через Spectacular
 SPECTACULAR_SETTINGS = {
     "TITLE": "OB3 Document Processing API",
     "DESCRIPTION": "Дипломный проект: Сервис обработки загружаемых документов",
@@ -128,13 +126,6 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
-# 12. Настройки отправки почтовых уведомлений (Email)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 25))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in ("true", "1", "t")
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").lower() in ("true", "1", "t")
-
+# 12. РЕЖИМ РАЗРАБОТКИ: Письма отправляются прямо в консоль терминала
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@platform.com")
