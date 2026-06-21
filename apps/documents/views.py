@@ -4,31 +4,29 @@ from rest_framework import parsers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-# ДОБАВЛЕН ИСПРАВЛЕННЫЙ ИМПОРТ ДЛЯ JWT
 from rest_framework_simplejwt.authentication import JWTAuthentication
+# ДОБАВЛЕНЫ ДЕКОРАТОРЫ ДЛЯ НАСТРОЙКИ SWAGGER
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.documents.models import Document
 from apps.documents.serializers import DocumentSerializer, DocumentUploadSerializer
 from apps.documents.tasks import send_admin_notification_task
 
 
+@extend_schema_view(
+    create=extend_schema(
+        summary="Загрузка нового файла документа",
+        description="Позволяет авторизованному пользователю загрузить файл документа.",
+        request=DocumentUploadSerializer,
+        responses={201: DocumentSerializer}
+    )
+)
 class DocumentViewSet(viewsets.ModelViewSet):
     """API-эндпоинт для загрузки и просмотра документов зарегистрированными пользователями."""
 
     permission_classes = [IsAuthenticated]
-    # Теперь оба класса авторизации импортированы правильно
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser)
-
-    def get_queryset(self) -> Any:
-        """Бизнес-логика: обычный пользователь видит только СВОИ загруженные документы.
-
-        Администратор видит абсолютно все документы в системе.
-        """
-        user = self.request.user
-        if user.is_staff or user.is_superuser:
-            return Document.objects.all()
-        return Document.objects.filter(user=user)
 
     def get_queryset(self) -> Any:
         """Бизнес-логика: обычный пользователь видит только СВОИ загруженные документы.
