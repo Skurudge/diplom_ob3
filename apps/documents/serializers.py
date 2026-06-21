@@ -24,15 +24,15 @@ class DocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "status", "admin_comment", "created_at", "updated_at")
 
 
-class DocumentUploadSerializer(serializers.ModelSerializer):
-    """Сериализатор, который отвечает строго за валидацию загружаемого файла."""
+class DocumentUploadSerializer(serializers.Serializer):
+    """Сериализатор формы загрузки.
 
-    # Явно указываем тип поля для корректного отображения кнопки в Swagger UI
+    Использует базовый Serializer, чтобы гарантировать появление кнопки выбора файла в
+    Swagger.
+    """
+
+    # Жестко указываем тип поля как файл. Это заставит Swagger отобразить кнопку обзора.
     file = serializers.FileField(required=True, label="Файл документа")
-
-    class Meta:
-        model = Document
-        fields = ("file",)
 
     def validate_file(self, value: Any) -> Any:
         """Бизнес-валидация: проверка расширения и размера файла."""
