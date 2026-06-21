@@ -5,7 +5,6 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-# ДОБАВЛЕНЫ ДЕКОРАТОРЫ ДЛЯ НАСТРОЙКИ SWAGGER
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.documents.models import Document
@@ -31,8 +30,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def get_queryset(self) -> Any:
         """Бизнес-логика: обычный пользователь видит только СВОИ загруженные документы.
 
-        Администратор видит абсолютно все документы в системе.
+        Защищено от ошибок генерации схем OpenAPI (Swagger).
         """
+        # Безопасный пропуск для генератора схем drf-spectacular
+        if getattr(self, "swagger_fake_view", False):
+            return Document.objects.none()
+
         user = self.request.user
         if user.is_staff or user.is_superuser:
             return Document.objects.all()
@@ -49,7 +52,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer_class()(data=request.data)
 
         if serializer.is_valid():
-            # Сохраняем документ в базу данных PostgreSQL внутри Docker
             document = Document.objects.create(
                 user=request.user,
                 file=serializer.validated_data["file"]
