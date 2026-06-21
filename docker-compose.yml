@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # 1. Контейнер базы данных PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: ob3_postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME:-ob3_db}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ob3_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Контейнер брокера сообщений Redis (<5.0.0 для стабильности)
+  redis:
+    image: redis:4.0-alpine
+    container_name: ob3_redis_broker
+    ports:
+      - "6379:6379"
+
+  # 3. Контейнер основного веб-приложения Django
+  web:
+    build: .
+    container_name: ob3_django_web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # 4. Контейнер асинхронного воркера Celery
+  celery:
+    build: .
+    container_name: ob3_celery_worker
+    command: celery -A config worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+volumes:
+  postgres_data:
