@@ -13,13 +13,10 @@ router.register(r"documents", DocumentViewSet, basename="document")
 urlpatterns = [
     # Панель администратора Django
     path("admin/", admin.site.urls),
-
     # Все эндпоинты приложения (доступны по адресу /api/v1/documents/)
     path("api/v1/", include(router.urls)),
-
     # Автогенерация схемы OpenAPI 3.0 от drf-spectacular
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
-
     # Интерактивная документация Swagger UI для демонстрации на защите
     path("api/v1/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 ]
