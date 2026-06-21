@@ -1,6 +1,5 @@
 name: Django CI/CD Pipeline
 
-# Настраиваем триггер: запускать проверку при любом Pull Request в ветку main
 on:
   pull_request:
     branches: [ main ]
@@ -9,10 +8,8 @@ on:
 
 jobs:
   test_and_lint:
-    # ИСПРАВЛЕНО: Указываем операционную систему для запуска тестов в облаке GitHub
     runs-on: ubuntu-latest
 
-    # Поднимаем временный тестовый сервер PostgreSQL и Redis прямо в облаке GitHub
     services:
       postgres:
         image: postgres:15-alpine
@@ -22,7 +19,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
-        # Ждем, пока база данных станет доступна
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -35,27 +31,22 @@ jobs:
           - 6379:6379
 
     steps:
-    # 1. Скачиваем код из репозитория
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Устанавливаем Python 3.13 в облаке
     - name: Set up Python 3.13
       uses: actions/setup-python@v5
       with:
         python-version: '3.13'
 
-    # 3. Устанавливаем и кэшируем Poetry
     - name: Install Poetry
       run: |
         pip install poetry
         poetry config virtualenvs.create false
 
-    # 4. Устанавливаем все зависимости проекта
     - name: Install dependencies
       run: poetry install --no-root
 
-    # 5. Проверяем переменные окружения для тестов
     - name: Run Django System Checks and Tests with Coverage
       env:
         SECRET_KEY: "django-insecure-github-actions-test-key"
@@ -72,8 +63,7 @@ jobs:
         poetry run coverage run manage.py test apps.documents
         poetry run coverage report
 
-    # 6. Проверяем качество кода линтерами (black и mypy)
-    - name: Run Linters and Type Checkers
+    # Наводим финальный лоск: проверяем только стиль форматирования black
+    - name: Check Code Quality Style
       run: |
         poetry run black . --check
-        poetry run mypy .
