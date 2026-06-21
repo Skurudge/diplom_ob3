@@ -20,8 +20,9 @@ def send_admin_notification_task(document_id: int) -> str:
         send_mail(
             subject=subject,
             message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings,
-                                                              'DEFAULT_FROM_EMAIL') else "noreply@platform.com",
+            from_email=(
+                settings.DEFAULT_FROM_EMAIL if hasattr(settings, "DEFAULT_FROM_EMAIL") else "noreply@platform.com"
+            ),
             recipient_list=[settings.ADMIN_EMAIL],
             fail_silently=False,
         )
@@ -40,7 +41,7 @@ def send_user_status_notification_task(document_id: int) -> str:
         subject = f"📋 Статус вашего документа #{document.id} обновлен"
         message = (
             f"Здравствуйте, {document.user.username}!\n\n"
-            f"Статус верификации вашего документа был изменен на: \"{status_label}\".\n"
+            f'Статус верификации вашего документа был изменен на: "{status_label}".\n'
         )
 
         # Если администратор оставил текстовый комментарий (например, причину отказа)

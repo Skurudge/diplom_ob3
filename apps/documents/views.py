@@ -17,7 +17,7 @@ from apps.documents.tasks import send_admin_notification_task
         summary="Загрузка нового файла документа",
         description="Позволяет авторизованному пользователю загрузить файл документа.",
         request=DocumentUploadSerializer,
-        responses={201: DocumentSerializer}
+        responses={201: DocumentSerializer},
     )
 )
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -52,10 +52,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer_class()(data=request.data)
 
         if serializer.is_valid():
-            document = Document.objects.create(
-                user=request.user,
-                file=serializer.validated_data["file"]
-            )
+            document = Document.objects.create(user=request.user, file=serializer.validated_data["file"])
             response_serializer = DocumentSerializer(document)
 
             # ИНТЕГРАЦИЯ CELERY: Отправляем задачу в фоновую очередь
